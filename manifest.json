@@ -1,0 +1,8 @@
+{
+	"domain": "home_connect",
+	"name": "Home Connect",
+	"documentation": "https://github.com/cotwild/homeassistant-home_connect",
+	"dependencies": [],
+	"requirements": ["aiohttp-sse-client==0.1.6", "aiohttp==3.5.4"],
+	"codeowners": ["@cotwild"]
+}

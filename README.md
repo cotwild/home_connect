@@ -1,6 +1,6 @@
 # homeassistant-home_connect
 
-This is a quick n' dirty component for Home Assistant to read the state of a HOME CONNECT Oven, Dishwasher, Washer & Dryer. It likely works with other Home Connect devices too.
+This is a quick n' dirty component for Home Assistant to read the state of a HOME CONNECT Oven, Dishwasher, Washer & Dryer. It likely works with other Home Connect devices too. Based on the BOSCH Dryer module from GKREITZ: https://github.com/gkreitz/homeassistant-bosch_dryer
 
 This will give you five sensors for each HOME CONNECT device you have:
 - **door**: `open`, `close`, `locked`, or `unknown`. https://developer.home-connect.com/docs/status/door_state

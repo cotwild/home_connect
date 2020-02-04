@@ -51,7 +51,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
     for a in appliances:
         _LOGGER.debug('Found device %s', a)
-        if a['type'] not in ['Oven','Dryer','Washer','Dishwasher':
+        if a['type'] not in ['Oven','Dryer','Washer','Dishwasher']:
             continue
 
         haId = a['haId']
@@ -148,13 +148,15 @@ class HCDataReader:
         elif key == 'BSH.Common.Status.DoorState':
             self._state['door'] = value.rsplit('.',1)[1].lower()
         elif key == 'BSH.Common.Status.OperationState':
-			self._state['state'] = value.rsplit('.',1)[1].lower()
+            self._state['state'] = value.rsplit('.',1)[1].lower()
         elif key == 'BSH.Common.Root.ActiveProgram':
             self._state['program'] = value.rsplit('.',1)[1].lower()
         elif key == 'BSH.Common.Option.RemainingProgramTime':
             self._state['remaining'] = int(value)
         elif key == 'BSH.Common.Option.ElapsedProgramTime':
             self._state['elapsed'] = int(value)
+        elif key == 'BSH.Common.Root.SelectedProgram':
+            self._state['program'] = 'None'
         else:
             _LOGGER.debug('Ignored key-value pair: %s,%s', key, value)
             updated = False
@@ -234,14 +236,24 @@ class HCDataReader:
         for item in status_response['data']['status']:
             self.handle_key_value(item['key'], item['value'])
 
+        _LOGGER.debug('Actual state: %s', self.get_data('state'))
         if self.get_data('state') not in ['inactive', 'ready', 'finished']:
             program_response = await self._auth_session.get(_build_api_url('/homeappliances/{haid}/programs/active', self._haId), headers=headers)
-            self.handle_key_value('BSH.Common.Root.SelectedProgram', program_response['data']['key'])
-            for item in program_response['data']['options']:
-                self.handle_key_value(item['key'], item['value'])
+            if 'error' in program_response:
+                if program_response['error']['key'] == 'SDK.Error.NoProgramSelected':
+                    self.handle_key_value('BSH.Common.Root.SelectedProgram', 'No program selected')
+            elif 'data' in program_response:
+                self.handle_key_value('BSH.Common.Root.SelectedProgram', program_response['data']['key'])
+                for item in program_response['data']['options']:
+                    self.handle_key_value(item['key'], item['value'])
         else:
             program_response = await self._auth_session.get(_build_api_url('/homeappliances/{haid}/programs/selected', self._haId), headers=headers)
-            self.handle_key_value('BSH.Common.Root.SelectedProgram', program_response['data']['key'])
+            _LOGGER.debug('Program_response: %s', str(program_response))
+            if 'error' in program_response:
+                if program_response['error']['key'] == 'SDK.Error.NoProgramSelected':
+                    self.handle_key_value('BSH.Common.Root.SelectedProgram', 'No program selected')
+            elif 'data' in program_response:
+                self.handle_key_value('BSH.Common.Root.SelectedProgram', program_response['data']['key'])
 
 class HCSensorEntity(Entity):
     def __init__(self, reader, key, brand, vib, name):

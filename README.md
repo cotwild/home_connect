@@ -14,7 +14,7 @@ If the devicse is off/not connected to wifi, you'll get a **state** of `unavaila
 
 
 ## Installation
-- Ensure your HOME CONNECT device is set up and working in the Home Connect app.
+- Ensure your HOME CONNECT devices are set up and working in the HOME CONNECT app on your smartphone.
 - Copy this folder to `<config_dir>/custom_components/home_connect/`.
 - Create an account on https://developer.home-connect.com/.
 - Register an application. Pick `Device flow` for OAuth flow.

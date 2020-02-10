@@ -1,6 +1,6 @@
 # homeassistant-home_connect
 
-This is a HOME ASSISTANT component to read the states of a HOME CONNECT Oven, Dishwasher, Washer & Dryer. 
+This is a HOME ASSISTANT component to read the states of a HOME CONNECT Oven, Dishwasher, Washer & Dryer.<br>
 (Based on the BOSCH Dryer module from GKREITZ: https://github.com/gkreitz/homeassistant-bosch_dryer)
 
 This will give you five sensors for each HOME CONNECT device you have:

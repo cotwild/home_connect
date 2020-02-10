@@ -18,13 +18,20 @@ If the devicse is off/not connected to wifi, you'll get a **state** of `unavaila
 - Copy this folder to `<config_dir>/custom_components/home_connect/`.
 - Create an account on https://developer.home-connect.com/.
 - Register an application. Pick `Device flow` for OAuth flow.
-- Once you start this sequence, you have 5 minutes to complete it (or you'll have to restart from here):
+- Once you start the following sequence, you have 5 minutes to complete it (or you'll have to restart from here):
+
+- LINUX Console:
   - `export CLIENT_ID="YOUR_CLIENT_ID"`
   - `curl -X POST -H "Content-Type: application/x-www-form-urlencoded" -d "client_id=${CLIENT_ID}" https://api.home-connect.com/security/oauth/device_authorization | tee tmp.json`
   - Go to `verification_uri` in a browser, type in `user_code`. Log in using your (end user, not developer) Home Connect account and approve.
   - `export DEVICE_CODE=$(jq -r .device_code tmp.json)`
   - `curl -X POST -H "Content-Type: application/x-www-form-urlencoded" -d "grant_type=urn:ietf:params:oauth:grant-type:device_code&device_code=${DEVICE_CODE}&client_id=${CLIENT_ID}" https://api.home-connect.com/security/oauth/token | tee access_token.json`
   - `jq .refresh_token access_token.json`
+  
+- WINDOWS: it should be possible to get your access_token using an HTTP API Tool like Postman or Insomnia (not tested)
+  - POST Request to: "https://api.home-connect.com/security/oauth/device_authorization" with HEADER: "Content-Type: application/x-www-form-urlencoded" and DATA: "client_id=YOUR_CLIENT_ID" -> This will provide you a JSON-formatted response, you'll need a `device_code`, `verification_uri` and `user_code` from it.
+  - Go to `verification_uri` in a browser, type in `user_code`. Log in using your (end user, not developer) Home Connect account and approve.
+  - POST Request to: "https://api.home-connect.com/security/oauth/token" with HEADER: "Content-Type: application/x-www-form-urlencoded" and DATA: "grant_type=urn:ietf:params:oauth:grant-type:device_code&device_code=DEVICE_CODE_FROM_PREVIOUS_REQUEST&client_id=YOUR_CLIENT_ID" -> This will provide you the needed `refresh_token` as a JSON-response.
 
 Put the following in your home assistant config:
 ```
@@ -32,6 +39,9 @@ sensor:
   - platform: home_connect
     refresh_token: "YOUR_REFRESH_TOKEN"
 ```
+
+Save and restart HA. The sensors for all your HOME CONNECT devices should be generated automatically.
+
 
 ## Usage
 I used the custom component 'multiple-entity-row' to display the states of the HOME CONNECT devices. For better readable timer i am using a template sensor.

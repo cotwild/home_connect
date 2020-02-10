@@ -1,6 +1,7 @@
 # homeassistant-home_connect
 
-This is a quick n' dirty component for Home Assistant to read the state of a HOME CONNECT Oven, Dishwasher, Washer & Dryer. It likely works with other Home Connect devices too. Based on the BOSCH Dryer module from GKREITZ: https://github.com/gkreitz/homeassistant-bosch_dryer
+This is a HOME ASSISTANT component to read the states of a HOME CONNECT Oven, Dishwasher, Washer & Dryer. 
+(Based on the BOSCH Dryer module from GKREITZ: https://github.com/gkreitz/homeassistant-bosch_dryer)
 
 This will give you five sensors for each HOME CONNECT device you have:
 - **door**: `open`, `close`, `locked`, or `unknown`. https://developer.home-connect.com/docs/status/door_state
@@ -30,6 +31,47 @@ Put the following in your home assistant config:
 sensor:
   - platform: home_connect
     refresh_token: "YOUR_REFRESH_TOKEN"
+```
+
+## Usage
+I used the custom component 'multiple-entity-row' to display the states of the HOME CONNECT devices. For better readable timer i am using a template sensor.
+
+sensors.yaml
+```
+    hb_timer:
+      friendly_name: "Oven remaining"
+      value_template: >
+          {% if states('sensor.siemens_hbXXXXXXX_state') == 'finished' %}
+            FINISHED
+          {% elif states('sensor.siemens_hbXXXXXXX_state') == 'inactive' %}
+            OFF
+          {% elif states('sensor.siemens_hbXXXXXXX_remaining') == 'unknown' %} 
+            ...
+          {% elif states('sensor.siemens_hbXXXXXXX_remaining') | float < 61 %}
+            {{ states('sensor.siemens_hbXXXXXXX_remaining') + " sek" }}
+          {% else %}
+            {{ ((states('sensor.siemens_hbXXXXXXX_remaining') | float / 60) | round(0)) | string + " min" }}
+          {% endif %}
+```
+
+ui-lovelace.yaml
+```
+  - entity: sensor.hb_timer #Template Sensor for a more readable time
+    type: custom:multiple-entity-row
+    icon: mdi:window-maximize
+    name: Oven
+    info:
+        entity: sensor.siemens_hbXXXXXXX_state
+        name: "Status:"
+    primary:
+      entity: sensor.siemens_hbXXXXXXX_program
+      name: Program
+    secondary:
+      entity: sensor.siemens_hbXXXXXXX_door
+      name: Door
+    tertiary:
+      entity: sensor.siemens_hbXXXXXXX_elapsed
+      name: Runtime
 ```
 
 ## Remarks on the API

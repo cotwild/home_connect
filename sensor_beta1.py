@@ -51,7 +51,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
     for a in appliances:
         _LOGGER.debug('Found device %s', a)
-        if a['type'] not in ['Oven','Dryer','Washer','Dishwasher']:
+        if a['type'] not in ['Oven','Dryer','Washer','Dishwasher','CoffeeMaker','FridgeFreezer','Freezer','Refrigerator']:
             continue
 
         haId = a['haId']
@@ -143,6 +143,7 @@ class HCDataReader:
             self._state['state'] = STATE_UNAVAILABLE
             self._state['door'] = STATE_UNKNOWN
             self._state['program'] = STATE_UNKNOWN
+            self._state['progress'] = STATE_UNKNOWN
             self._state['remaining'] = STATE_UNKNOWN
             self._state['elapsed'] = STATE_UNKNOWN
         elif key == 'BSH.Common.Status.DoorState':
@@ -156,7 +157,9 @@ class HCDataReader:
         elif key == 'BSH.Common.Option.ElapsedProgramTime':
             self._state['elapsed'] = int(value)
         elif key == 'BSH.Common.Root.SelectedProgram':
-            self._state['program'] = 'None'
+            self._state['program'] = value.rsplit('.',1)[1].lower()
+        elif key == 'BSH.Common.Option.ProgramProgress':
+            self._state['progress'] = int(value)
         else:
             _LOGGER.debug('Ignored key-value pair: %s,%s', key, value)
             updated = False

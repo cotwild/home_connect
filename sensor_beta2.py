@@ -25,7 +25,15 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required(CONF_REFRESH_TOKEN): cv.string,
 })
 
-SENSOR_TYPES = ['door', 'program', 'remaining', 'elapsed', 'state']
+OVEN_SENSORS = ['OperationState', 'DoorState', 'LocalControlActive', 'Program', 'Elapsed', 'Remaining', 'Progress', 'Warning']
+DISHWASHER_SENSORS = ['OperationState', 'DoorState', 'LocalControlActive', 'Program', 'Remaining', 'Progress', 'Warning']
+WASHER_SENSORS = ['OperationState', 'DoorState', 'LocalControlActive', 'Program', 'Elapsed', 'Remaining', 'Temperature', 'SpinSpeed', 'Warning']
+DRYER_SENSORS = ['OperationState', 'DoorState', 'LocalControlActive', 'Program', 'Elapsed', 'Remaining', 'Warning']
+COFFEEMAKER_SENSORS = ['OperationState', 'LocalControlActive', 'Program', 'Elapsed', 'Remaining', 'BeanAmount', 'FillQuantity', 'Temperature', 'Warning']
+FREEZER_SENSORS = ['OperationState', 'DoorState', 'Warning']
+FRIDGEFREEZER_SENSORS = ['OperationState', 'DoorState', 'Warning']
+REFRIGERATOR_SENSORS = ['OperationState', 'DoorState', 'Warning']
+WINECOOLER_SENSORS = ['OperationState', 'DoorState', 'Warning']
 BASE_URL = 'https://api.home-connect.com/'
 
 
@@ -51,16 +59,32 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
     for a in appliances:
         _LOGGER.debug('Found device %s', a)
-        if a['type'] not in ['Oven','Dryer','Washer','Dishwasher','CoffeeMaker','FridgeFreezer','Freezer','Refrigerator']:
+        if a['type'] not in ['Oven','Dryer','Washer','Dishwasher','CoffeeMaker','Freezer','FridgeFreezer','Refrigerator','Wine-cooler']:
             continue
 
         haId = a['haId']
         _LOGGER.info('Found device %s', haId)
         reader = HCDataReader(auth_session, a['haId'], hass)
         hass.loop.create_task(reader.process_updates())
-
-        async_add_entities([HCSensorEntity(reader, key, a['brand'], a['vib'], key.capitalize()) for key in SENSOR_TYPES])
-
+        if a['type'] == "Oven":
+            async_add_entities([HCSensorEntity(reader, key, a['brand'], a['vib'], key.capitalize()) for key in OVEN_SENSORS])
+        elif a['type'] == "Dryer":
+            async_add_entities([HCSensorEntity(reader, key, a['brand'], a['vib'], key.capitalize()) for key in DRYER_SENSORS])
+        elif a['type'] == "Washer":
+            async_add_entities([HCSensorEntity(reader, key, a['brand'], a['vib'], key.capitalize()) for key in WASHER_SENSORS])
+        elif a['type'] == "Dishwasher":
+            async_add_entities([HCSensorEntity(reader, key, a['brand'], a['vib'], key.capitalize()) for key in DISHWASHER_SENSORS])
+        elif a['type'] == "CoffeeMaker":
+            async_add_entities([HCSensorEntity(reader, key, a['brand'], a['vib'], key.capitalize()) for key in COFFEEMAKER_SENSORS])
+        elif a['type'] == "Freezer":
+            async_add_entities([HCSensorEntity(reader, key, a['brand'], a['vib'], key.capitalize()) for key in FREEZER_SENSORS])            
+        elif a['type'] == "FridgeFreezer":
+            async_add_entities([HCSensorEntity(reader, key, a['brand'], a['vib'], key.capitalize()) for key in FRIDGEFREEZER_SENSORS])
+        elif a['type'] == "Refrigerator":
+            async_add_entities([HCSensorEntity(reader, key, a['brand'], a['vib'], key.capitalize()) for key in REFRIGERATOR_SENSORS])
+        elif a['type'] == "Wine-cooler":
+            async_add_entities([HCSensorEntity(reader, key, a['brand'], a['vib'], key.capitalize()) for key in WINECOOLER_SENSORS])
+            
 class OauthSession:
     def __init__(self, session, refresh_token):
         self._session = session
@@ -140,29 +164,59 @@ class HCDataReader:
     def handle_key_value(self, key, value):
         updated = True
         if key == 'DISCONNECTED':
-            self._state['state'] = STATE_UNAVAILABLE
-            self._state['door'] = STATE_UNKNOWN
-            self._state['program'] = STATE_UNKNOWN
-            self._state['progress'] = STATE_UNKNOWN
-            self._state['remaining'] = STATE_UNKNOWN
-            self._state['elapsed'] = STATE_UNKNOWN
+            self._state['OperationState'] = 'disconnected'
+            if 'DoorState' in self._state:
+                self._state['DoorState'] = ''
+            if 'Program' in self._state:
+                self._state['Program'] = ''
+            if 'Remaining' in self._state:
+                self._state['Remaining'] = ''
+            if 'Elapsed' in self._state:
+                self._state['Elapsed'] = ''
+            if 'Warning' in self._state:
+                self._state['Warning'] = ''
         elif key == 'BSH.Common.Status.DoorState':
-            self._state['door'] = value.rsplit('.',1)[1].lower()
+            self._state['DoorState'] = value.rsplit('.',1)[1].lower()
         elif key == 'BSH.Common.Status.OperationState':
-            self._state['state'] = value.rsplit('.',1)[1].lower()
+            self._state['OperationState'] = value.rsplit('.',1)[1].lower()
+        elif key == 'BSH.Common.Setting.PowerState':
+            self._state['OperationState'] = value.rsplit('.',1)[1].lower()
         elif key == 'BSH.Common.Root.ActiveProgram':
-            self._state['program'] = value.rsplit('.',1)[1].lower()
+            if value.count('.') > 0:
+                self._state['Program'] = value.rsplit('.',1)[1].lower()
+            else:
+                self._state['Program'] = value.lower()
         elif key == 'BSH.Common.Option.RemainingProgramTime':
-            self._state['remaining'] = int(value)
+            self._state['Remaining'] = int(value)
         elif key == 'BSH.Common.Option.ElapsedProgramTime':
-            self._state['elapsed'] = int(value)
+            self._state['Elapsed'] = int(value)
         elif key == 'BSH.Common.Root.SelectedProgram':
             if value.count('.') > 0:
-                self._state['program'] = value.rsplit('.',1)[1].lower()
+                self._state['Program'] = value.rsplit('.',1)[1].lower()
             else:
-                self._state['program'] = value.lower()
+                self._state['Program'] = value.lower()
         elif key == 'BSH.Common.Option.ProgramProgress':
-            self._state['progress'] = int(value)
+            self._state['Progress'] = int(value)
+        elif key == 'ConsumerProducts.CoffeeMaker.Event.BeanContainerEmpty':
+            self._state['Warning'] = 'bean container empty'
+        elif key == 'ConsumerProducts.CoffeeMaker.Event.WaterTankEmpty':
+            self._state['Warning'] = 'water tank empty'
+        elif key == 'ConsumerProducts.CoffeeMaker.Event.DripTrayFull':
+            self._state['Warning'] = 'drip tray full'
+        elif key == 'ConsumerProducts.CoffeeMaker.Option.CoffeeTemperature':
+            self._state['Temperature'] = int(value)
+        elif key == 'ConsumerProducts.CoffeeMaker.Option.FillQuantity':
+            self._state['FillQuantity'] = int(value)
+        elif key == 'ConsumerProducts.CoffeeMaker.Option.BeanAmount':
+            self._state['BeanAmount'] = int(value)
+        elif key == 'Refrigeration.FridgeFreezer.Event.DoorAlarmFreezer':
+            self._state['Warning'] = 'door alarm'
+        elif key == 'Refrigeration.FridgeFreezer.Event.DoorAlarmRefrigerator':
+            self._state['Warning'] = 'door alarm'
+        elif key == 'Refrigeration.FridgeFreezer.Event.TemperatureAlarmFreezer':
+            self._state['Warning'] = 'freezer temp too high'
+        elif key == 'BSH.Common.Option.ProgramProgress':
+            self._state['Progress'] = int(value)
         else:
             _LOGGER.debug('Ignored key-value pair: %s,%s', key, value)
             updated = False
